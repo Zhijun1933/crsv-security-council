@@ -598,6 +598,27 @@ mark { background: var(--accent-soft); color: inherit; padding: 0 1px; border-ra
 .node rect { transition: opacity 120ms ease; }
 .node:hover rect, .node:focus-visible rect { stroke: var(--ink); stroke-width: 1.2; }
 .node.sel rect, .node.sel circle { stroke: var(--ink); stroke-width: 2; }
+
+/* ---------- orbit ---------- */
+.chart-shell.orbit { padding: 4px; background: var(--panel); }
+.spoke { stroke: var(--rule-soft); stroke-width: 1; }
+.ring.rim { stroke: var(--rule); }
+.ring.core { stroke: var(--rule); stroke-dasharray: 3 5; }
+.core-label { fill: var(--ink-3); font-size: 12px; letter-spacing: 0.02em; }
+.core-label.sub { font-size: 10.5px; }
+.tick { stroke: var(--rule); stroke-width: 1; }
+.axis-label.faint { fill-opacity: 0.38; }
+.onode { cursor: pointer; }
+.onode .halo { fill: var(--ink); opacity: 0; transition: opacity 140ms ease; }
+.onode:hover .halo, .onode:focus-visible .halo { opacity: 0.12; }
+.onode circle:not(.halo) { transition: transform 140ms ease; }
+.onode:hover circle:not(.halo) { stroke: var(--ink); stroke-width: 1.6; }
+.onode-label { fill: var(--ink-2); font-size: 10px; font-family: "IBM Plex Mono", monospace; }
+.legend-size { color: var(--ink-3); }
+.legend-size .dot { border-radius: 50%; background: var(--ink-3); display: inline-block; margin-right: 3px; }
+.legend-size .dot.s1 { width: 6px; height: 6px; }
+.legend-size .dot.s2 { width: 9px; height: 9px; }
+.legend-size .dot.s3 { width: 13px; height: 13px; }
 </style>
 </head>
 <body>
@@ -611,7 +632,8 @@ mark { background: var(--accent-soft); color: inherit; padding: 0 1px; border-ra
   <div class="toolbar">
     <button class="btn icon rail-toggle" id="railToggle" type="button" aria-label="Show filters">☰ Filters</button>
     <div class="seg" id="viewSeg" role="group" aria-label="View">
-      <button type="button" data-view="strength" aria-pressed="true">Force</button>
+      <button type="button" data-view="orbit" aria-pressed="true">Orbit</button>
+      <button type="button" data-view="strength" aria-pressed="false">Force</button>
       <button type="button" data-view="tracks" aria-pressed="false">Tracks</button>
       <button type="button" data-view="chain" aria-pressed="false">Designation line</button>
       <button type="button" data-view="carry" aria-pressed="false">Carried forward</button>
@@ -743,7 +765,7 @@ mark { background: var(--accent-soft); color: inherit; padding: 0 1px; border-ra
   })();
 
   var S = { q: "", tiers: ["A"], cats: [], track: "", force: [], status: "",
-    y0: YMIN, y1: YMAX, view: "strength", sel: null, sortKey: "year", sortDir: 1, carriedOnly: false };
+    y0: YMIN, y1: YMAX, view: "orbit", sel: null, sortKey: "year", sortDir: 1, carriedOnly: false };
 
   /* ---------- helpers ---------- */
   function el(t, a) {
@@ -819,7 +841,7 @@ mark { background: var(--accent-soft); color: inherit; padding: 0 1px; border-ra
     if (S.carriedOnly) p.set("carried", "1");
     if (S.y0 !== YMIN) p.set("from", S.y0);
     if (S.y1 !== YMAX) p.set("to", S.y1);
-    if (S.view !== "strength") p.set("view", S.view);
+    if (S.view !== "orbit") p.set("view", S.view);
     if (S.sel !== null) p.set("row", S.sel);
     try { history.replaceState(null, "", p.toString() ? location.pathname + "?" + p : location.pathname); } catch (e) {}
   }
@@ -845,6 +867,176 @@ mark { background: var(--accent-soft); color: inherit; padding: 0 1px; border-ra
   function empty() {
     return el("div", { class: "empty" }, el("b", { text: "Nothing in view" }),
       el("div", { text: "Widen the years or clear a filter." }));
+  }
+
+
+  /* -- orbit: one resolution per node, angle = track, radius = year -- */
+  function viewOrbit(rs) {
+    var stage = $("stage");
+    stage.appendChild(head("The corpus in orbit",
+      "One node per resolution. The angle is its situation, the distance from the centre is the year " +
+      "it was adopted, the size is how many paragraphs it contributes to the current selection, and the " +
+      "colour is the strongest verb it uses on those paragraphs. The thematic resolutions sit in the core, " +
+      "since they belong to no single situation."));
+    if (!rs.length) { stage.appendChild(empty()); return; }
+
+    var byRes = {};
+    rs.forEach(function (r) {
+      var o = byRes[r.number] || (byRes[r.number] = { n: r.number, symbol: r.symbol, year: r.year,
+        track: r.track, category: r.category, count: 0, best: -1, rows: [] });
+      o.count++; o.rows.push(r);
+      var rank = FORCE_BY[r.force] ? FORCE_BY[r.force].rank : -1;
+      if (rank > o.best) { o.best = rank; o.force = r.force; }
+    });
+    var nodes = Object.keys(byRes).map(function (k) { return byRes[k]; });
+
+    var allTracks = {};
+    ROWS.forEach(function (r) { if (!allTracks[r.track]) allTracks[r.track] = { name: r.track, first: r.year, thematic: r.category === "Thematic WPS/CRSV" }; 
+      allTracks[r.track].first = Math.min(allTracks[r.track].first, r.year); });
+    var rim = Object.keys(allTracks).filter(function (t) { return !allTracks[t].thematic; })
+      .sort(function (a, b) { return allTracks[a].first - allTracks[b].first || a.localeCompare(b); });
+
+    var W = 1060, H = 900, cx = W / 2, cy = H / 2 + 8, rIn = 168, rOut = 352;
+    var step = (2 * Math.PI) / rim.length, ang = {};
+    rim.forEach(function (t, i) { ang[t] = i * step - Math.PI / 2; });
+    function rad(y) { return rIn + (y - YMIN) / (YMAX - YMIN) * (rOut - rIn); }
+
+    var svg = sv("svg", { viewBox: "0 0 " + W + " " + H, role: "img",
+      "aria-label": "Resolutions by situation and year" });
+
+    var defs = sv("defs", {});
+    var grad = sv("radialGradient", { id: "orbitwash", cx: "50%", cy: "50%", r: "50%" });
+    grad.appendChild(sv("stop", { offset: "0%", "stop-color": "var(--accent)", "stop-opacity": "0.10" }));
+    grad.appendChild(sv("stop", { offset: "62%", "stop-color": "var(--accent)", "stop-opacity": "0.035" }));
+    grad.appendChild(sv("stop", { offset: "100%", "stop-color": "var(--accent)", "stop-opacity": "0" }));
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+    svg.appendChild(sv("circle", { cx: cx, cy: cy, r: rOut + 26, fill: "url(#orbitwash)" }));
+
+    var g0 = sv("g", {});
+    rim.forEach(function (t) {
+      var a = ang[t];
+      g0.appendChild(sv("line", { class: "spoke", x1: cx + (rIn - 16) * Math.cos(a), y1: cy + (rIn - 16) * Math.sin(a),
+        x2: cx + (rOut + 8) * Math.cos(a), y2: cy + (rOut + 8) * Math.sin(a) }));
+    });
+    for (var y = YMIN; y <= YMAX; y += 5) {
+      g0.appendChild(sv("circle", { class: "ring", cx: cx, cy: cy, r: rad(y) }));
+      g0.appendChild(sv("text", { class: "ring-label", x: cx + 5, y: cy - rad(y) + 12, text: y }));
+    }
+    g0.appendChild(sv("circle", { class: "ring rim", cx: cx, cy: cy, r: rOut }));
+    svg.appendChild(g0);
+
+    /* core: thematic resolutions on a small arc */
+    var core = nodes.filter(function (o) { return o.category === "Thematic WPS/CRSV"; })
+      .sort(function (a, b) { return a.year - b.year; });
+    svg.appendChild(sv("circle", { class: "ring core", cx: cx, cy: cy, r: 104 }));
+    svg.appendChild(sv("text", { class: "core-label", x: cx, y: cy - 4, "text-anchor": "middle", text: "thematic" }));
+    svg.appendChild(sv("text", { class: "core-label sub", x: cx, y: cy + 12, "text-anchor": "middle", text: "framework" }));
+
+    var placed = [];
+    function place(x, y, r, seed) {
+      for (var pass = 0; pass < 400; pass++) {
+        var hit = null;
+        for (var i = 0; i < placed.length; i++) {
+          var p = placed[i], dx = x - p.x, dy = y - p.y;
+          var d = Math.sqrt(dx * dx + dy * dy), need = r + p.r + 4;
+          if (d < need) { hit = { d: d, need: need, dx: dx, dy: dy }; break; }
+        }
+        if (!hit) break;
+        var d2 = hit.d;
+        if (d2 < 0.5) {                       // exactly coincident: nudge on a deterministic angle
+          var a0 = (seed % 12) * (Math.PI / 6);
+          x += Math.cos(a0) * (hit.need / 2 + 1);
+          y += Math.sin(a0) * (hit.need / 2 + 1);
+          continue;
+        }
+        var push = (hit.need - d2) / 2 + 0.7;
+        x += (hit.dx / d2) * push; y += (hit.dy / d2) * push;
+      }
+      var rec = { x: x, y: y, r: r };
+      placed.push(rec);
+      return rec;
+    }
+    function relax(passes) {                   // global pass: separate any remaining pair
+      for (var t = 0; t < passes; t++) {
+        var moved = false;
+        for (var i = 0; i < placed.length; i++) {
+          for (var j = i + 1; j < placed.length; j++) {
+            var a = placed[i], b = placed[j];
+            var dx = b.x - a.x, dy = b.y - a.y;
+            var d = Math.sqrt(dx * dx + dy * dy) || 0.01;
+            var need = a.r + b.r + 4;
+            if (d < need) {
+              var k = (need - d) / 2 / d;
+              a.x -= dx * k; a.y -= dy * k; b.x += dx * k; b.y += dy * k;
+              moved = true;
+            }
+          }
+        }
+        if (!moved) break;
+      }
+    }
+    function size(o) { return 5 + Math.sqrt(o.count) * 2.6; }
+
+    var coreStep = (2 * Math.PI) / Math.max(core.length, 1), pending = [];
+    core.forEach(function (o, i) {
+      var a = i * coreStep - Math.PI / 2, rr = 104 * 0.66;
+      pending.push({ o: o, rec: place(cx + rr * Math.cos(a), cy + rr * Math.sin(a), size(o), i), core: true });
+    });
+    nodes.filter(function (o) { return o.category !== "Thematic WPS/CRSV"; })
+      .sort(function (a, b) { return a.year - b.year || a.n - b.n; })
+      .forEach(function (o, i) {
+        var a = ang[o.track];
+        if (a === undefined) a = -Math.PI / 2;
+        pending.push({ o: o, rec: place(cx + rad(o.year) * Math.cos(a), cy + rad(o.year) * Math.sin(a), size(o), i + 3), core: false });
+      });
+    relax(140);
+    var gN = sv("g", {}), gCore = sv("g", {});
+    pending.forEach(function (p) {
+      (p.core ? gCore : gN).appendChild(orbitNode(p.o, p.rec.x, p.rec.y, p.rec.r, p.core));
+    });
+    svg.appendChild(gN);
+    svg.appendChild(gCore);
+
+    var gL = sv("g", {});
+    rim.forEach(function (t) {
+      var a = ang[t], lr = rOut + 20;
+      var x = cx + lr * Math.cos(a), yy = cy + lr * Math.sin(a);
+      var right = Math.cos(a) > -0.02;
+      var n = rs.filter(function (r) { return r.track === t; }).length;
+      gL.appendChild(sv("line", { class: "tick", x1: cx + (rOut + 5) * Math.cos(a), y1: cy + (rOut + 5) * Math.sin(a),
+        x2: cx + (rOut + 14) * Math.cos(a), y2: cy + (rOut + 14) * Math.sin(a) }));
+      gL.appendChild(sv("text", { class: "axis-label" + (n ? "" : " faint"), x: x, y: yy + 4,
+        "text-anchor": right ? "start" : "end", text: t + (n ? "  " + n : "") }));
+    });
+    svg.appendChild(gL);
+
+    stage.appendChild(el("div", { class: "chart-shell orbit" }, svg));
+
+    var lg = el("div", { class: "legend" });
+    FORCE.forEach(function (f) {
+      lg.appendChild(el("span", {}, el("i", { style: { background: forceColor(f.k) } }), f.label.split(" /")[0]));
+    });
+    lg.appendChild(el("span", { class: "legend-size" },
+      el("i", { class: "dot s1" }), el("i", { class: "dot s2" }), el("i", { class: "dot s3" }),
+      "node size: paragraphs in the current selection"));
+    stage.appendChild(lg);
+  }
+
+  function orbitNode(o, x, y, r, isCore) {
+    var g = sv("g", { class: "onode", tabindex: "0", role: "button",
+      "aria-label": o.symbol + ", " + o.year + ", " + o.track + ", " + o.count + " paragraphs",
+      onclick: function () { S.q = o.symbol; S.view = "table"; render(); $("search").value = o.symbol; },
+      onkeydown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); S.q = o.symbol; S.view = "table"; render(); } } });
+    g.appendChild(sv("circle", { class: "halo", cx: x, cy: y, r: r + 5 }));
+    g.appendChild(sv("circle", { cx: x, cy: y, r: r, fill: forceColor(o.force),
+      "fill-opacity": 0.9, stroke: forceColor(o.force), "stroke-width": 1 }));
+    if (isCore || o.count >= 8) {
+      g.appendChild(sv("text", { class: "onode-label", x: x, y: y - r - 5, "text-anchor": "middle", text: o.n }));
+    }
+    g.appendChild(sv("title", { text: o.symbol + " (" + o.year + ") — " + o.track + "\n" +
+      o.count + " paragraphs in view · strongest verb: " + (FORCE_BY[o.force] ? FORCE_BY[o.force].label : "—") }));
+    return g;
   }
 
   /* -- strength: year × force -- */
@@ -1273,7 +1465,8 @@ mark { background: var(--accent-soft); color: inherit; padding: 0 1px; border-ra
     var rs = rows();
     sync(rs);
     clear($("stage"));
-    if (S.view === "strength") viewStrength(rs);
+    if (S.view === "orbit") viewOrbit(rs);
+    else if (S.view === "strength") viewStrength(rs);
     else if (S.view === "tracks") viewTracks(rs);
     else if (S.view === "chain") viewChain(rs);
     else if (S.view === "carry") viewCarry(rs);
