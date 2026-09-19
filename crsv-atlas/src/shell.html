@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Conflict-related sexual violence in UN Security Council resolutions, 2000–2025: 409 coded paragraphs from 72 resolutions, each verified against its source document.">
+<title>CRSV paragraphs in the Security Council, 2000–2025</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div class="app">
+  <header class="masthead">
+    <h1>Conflict-related sexual violence in Security Council resolutions</h1>
+    <p class="scope">409 coded paragraphs from 72 resolutions, 2000–2025, each verified against its source document.</p>
+    <span class="spacer"></span>
+    <span class="count-live" id="count" aria-live="polite"></span>
+  </header>
+  <div class="toolbar">
+    <button class="btn icon rail-toggle" id="railToggle" type="button" aria-label="Show filters">☰ Filters</button>
+    <div class="seg" id="viewSeg" role="group" aria-label="View">
+      <button type="button" data-view="strength" aria-pressed="true">Force</button>
+      <button type="button" data-view="tracks" aria-pressed="false">Tracks</button>
+      <button type="button" data-view="chain" aria-pressed="false">Designation line</button>
+      <button type="button" data-view="carry" aria-pressed="false">Carried forward</button>
+      <button type="button" data-view="table" aria-pressed="false">Paragraphs</button>
+      <button type="button" data-view="analysis" aria-pressed="false">Analysis</button>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn" id="exportBtn" type="button">Export selection</button>
+    <button class="btn icon" id="themeToggle" type="button" aria-label="Switch light or dark">◐</button>
+  </div>
+  <div class="body-grid">
+    <aside class="rail" id="rail" aria-label="Filters">
+      <section>
+        <h2>Search the text</h2>
+        <div class="search-wrap">
+          <label class="visually-hidden" for="search">Search paragraphs</label>
+          <input id="search" type="search" placeholder="rape, designation, survivor, 1820…" autocomplete="off">
+          <button class="clear" id="searchClear" type="button" aria-label="Clear">✕</button>
+        </div>
+        <p class="hint">Searches the verbatim paragraph text, verbs, notes and provenance. Press / to jump here.</p>
+      </section>
+      <section>
+        <h2>What the paragraph carries</h2>
+        <div class="chips" id="tierChips"></div>
+        <p class="hint">CRSV is selected by default. Add the other layers to see how much of the corpus rests on them.</p>
+      </section>
+      <section>
+        <h2>Force of the verb</h2>
+        <div class="chips" id="forceChips"></div>
+        <p class="hint">Derived from the paragraph's opening verb, not assigned by hand.</p>
+      </section>
+      <section>
+        <h2>Instrument</h2>
+        <div class="chips" id="catChips"></div>
+        <div class="field" style="margin-top:10px">
+          <label for="trackSelect">Situation or thematic track</label>
+          <select id="trackSelect"></select>
+        </div>
+        <div class="field">
+          <label for="statusSelect">Provenance</label>
+          <select id="statusSelect">
+            <option value="">Everything</option>
+            <option value="inherited">Inherited from the earlier dataset</option>
+            <option value="added">Added by the 2026 verification</option>
+            <option value="changed">Corrected, re-tiered or struck</option>
+          </select>
+        </div>
+        <label class="toggle-row"><input type="checkbox" id="carriedOnly"> Only paragraphs carried from earlier text</label>
+      </section>
+      <section>
+        <h2>Years</h2>
+        <div class="range-row">
+          <label class="visually-hidden" for="yearFrom">From</label>
+          <input id="yearFrom" type="range"><span class="range-val" id="yearLabel">2000–2025</span>
+        </div>
+        <div class="range-row">
+          <label class="visually-hidden" for="yearTo">To</label>
+          <input id="yearTo" type="range"><span class="range-val" aria-hidden="true"></span>
+        </div>
+        <button class="btn" id="reset" type="button" style="margin-top:10px">Clear all filters</button>
+      </section>
+      <section>
+        <h2>About this version</h2>
+        <p class="hint" style="margin-top:0">
+          Every paragraph was located in its UN document and checked verbatim. Twelve inherited references
+          pointed at the wrong paragraph, four records carried the wrong country or date, and one quotation
+          had no source; all are recorded rather than silently fixed. Coding decisions are provisional
+          pending review by the project lead.
+        </p>
+      </section>
+    </aside>
+    <main class="stage" id="stage" tabindex="-1"></main>
+  </div>
+</div>
+<aside class="drawer" id="drawer" data-open="false" aria-label="Paragraph details">
+  <div class="drawer-head" id="drawerHead"></div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+<div class="scrim" id="scrim"></div>
+<script>window.__CRSV__ = /*__DATA__*/;</script>
+<script>/*__JS__*/</script>
+</body>
+</html>
