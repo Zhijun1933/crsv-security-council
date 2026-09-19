@@ -4,7 +4,7 @@ Project lead and conceptual framework: Tonderai Chikuhwa — Chief of Staff and 
 Representative of the Secretary-General on Sexual Violence in Conflict; Hubert H. Humphrey
 Visiting Professor of Political Science, Macalester College (2024).
 
-Lead developer: Zhijun He (何智骏), Research Fellow to Tonderai Chikuhwa.
+Lead developer: Zhijun He, Research Fellow to Tonderai Chikuhwa; MacMillan Center, Yale University.
 
 No licence is granted here. Reuse of the dataset, the coding scheme or the interface is by
 permission of the project lead. If the project is to carry an open licence — CC BY 4.0 for the data

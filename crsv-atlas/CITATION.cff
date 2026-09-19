@@ -19,7 +19,10 @@ authors:
     role: Project lead and conceptual framework
   - family-names: He
     given-names: Zhijun
-    affiliation: Macalester College
+    affiliation: >-
+      MacMillan Center, Yale University; UN Office of the Special Representative of the
+      Secretary-General on Sexual Violence in Conflict
+    email: zhijun.he@yale.edu
     role: Lead developer
 keywords:
   - conflict-related sexual violence
