@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+title: "CRSV in the Security Council, 2000-2025"
+abstract: >-
+  A dataset and interactive instrument covering 72 United Nations Security Council
+  resolutions bearing on conflict-related sexual violence, 2000-2025, coded by
+  category, situation and thematic emphasis, with the operative and preambular
+  paragraphs that carry the language. Version 2026.09 codes every qualifying paragraph
+  (409 rows) and records the force of each provision, its provenance and any earlier
+  paragraph whose wording it reproduces.
+message: "If you use this dataset or instrument, please cite it."
+type: dataset
+version: "2026.09"
+authors:
+  - family-names: Chikuhwa
+    given-names: Tonderai
+    affiliation: >-
+      UN Office of the Special Representative of the Secretary-General on Sexual
+      Violence in Conflict; Macalester College
+    role: Project lead and conceptual framework
+  - family-names: He
+    given-names: Zhijun
+    affiliation: >-
+      MacMillan Center, Yale University; UN Office of the Special Representative of the
+      Secretary-General on Sexual Violence in Conflict
+    email: zhijun.he@yale.edu
+    role: Lead developer
+keywords:
+  - conflict-related sexual violence
+  - United Nations Security Council
+  - women peace and security
+  - sanctions designation criteria
