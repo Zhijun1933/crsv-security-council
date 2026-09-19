@@ -8,7 +8,8 @@ verbatim, with an interactive atlas built on the same data.
 Adviser, UN Office of the Special Representative of the Secretary-General on Sexual Violence in
 Conflict; Hubert H. Humphrey Visiting Professor of Political Science, Macalester College (2024).
 
-**Lead developer:** Zhijun He, Research Fellow to Tonderai Chikuhwa.
+**Lead developer:** Zhijun He — Research Fellow to Tonderai Chikuhwa; MacMillan Center, Yale
+University.
 
 © 2024–2026 Tonderai Chikuhwa. Built under his direction. Coding decisions in v2026.09 are
 provisional pending his review.
