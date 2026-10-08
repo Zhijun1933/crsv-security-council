@@ -20,10 +20,10 @@
   --accent: #1f3d6b;
   --accent-soft: #dde5f2;
   --on-accent: #ffffff;
-  --c-thematic: #1f3d6b;
-  --c-mission: #46705a;
-  --c-country: #a8721f;
-  --c-sanctions: #8c3a45;
+  --c-thematic: #b3261e;
+  --c-mission: #009edb;
+  --c-country: #8fd3f2;
+  --c-sanctions: #1b365d;
   --warn: #8c5a13;
   --focus: #2f6fd0;
   --shadow-drawer: -18px 0 42px rgba(18, 26, 38, 0.14);
@@ -49,10 +49,10 @@
     --accent: #7ba1e0;
     --accent-soft: #1c2b43;
     --on-accent: #0c1016;
-    --c-thematic: #7ba1e0;
-    --c-mission: #78b28b;
-    --c-country: #d3a054;
-    --c-sanctions: #cf7a86;
+    --c-thematic: #ef7a72;
+    --c-mission: #33b5ec;
+    --c-country: #bfe6f7;
+    --c-sanctions: #7f9fd6;
     --warn: #d3a054;
     --focus: #79a9f0;
     --shadow-drawer: -18px 0 42px rgba(0, 0, 0, 0.5);
@@ -73,10 +73,10 @@
   --accent: #7ba1e0;
   --accent-soft: #1c2b43;
   --on-accent: #0c1016;
-  --c-thematic: #7ba1e0;
-  --c-mission: #78b28b;
-  --c-country: #d3a054;
-  --c-sanctions: #cf7a86;
+  --c-thematic: #ef7a72;
+  --c-mission: #33b5ec;
+  --c-country: #bfe6f7;
+  --c-sanctions: #7f9fd6;
   --warn: #d3a054;
   --focus: #79a9f0;
   --shadow-drawer: -18px 0 42px rgba(0, 0, 0, 0.5);
@@ -260,7 +260,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .chip[aria-pressed="true"] { color: var(--ink); border-color: currentColor; background: transparent; font-weight: 500; }
 .chip[data-cat="Thematic WPS/CRSV"][aria-pressed="true"] { color: var(--c-thematic); }
 .chip[data-cat="Mission Mandate"][aria-pressed="true"] { color: var(--c-mission); }
-.chip[data-cat="Country-Specific"][aria-pressed="true"] { color: var(--c-country); }
+.chip[data-cat="Country-Specific"][aria-pressed="true"] { color: var(--c-mission); }
 .chip[data-cat="Sanctions"][aria-pressed="true"] { color: var(--c-sanctions); }
 
 .field { margin-bottom: 10px; }
@@ -735,7 +735,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
     <button class="btn icon rail-toggle" id="railToggle" type="button" aria-label="Show filters">☰ Filters</button>
     <div class="seg" id="viewSeg" role="group" aria-label="View">
       <button type="button" data-view="orbit" aria-pressed="true">Orbit</button>
-      <button type="button" data-view="strength" aria-pressed="false">Force</button>
+      <button type="button" data-view="strength" aria-pressed="false">Emphasis</button>
       <button type="button" data-view="tracks" aria-pressed="false">Tracks</button>
       <button type="button" data-view="trajectory" aria-pressed="false">Trajectories</button>
       <button type="button" data-view="novelty" aria-pressed="false">New vs carried</button>
@@ -767,7 +767,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
         <p class="hint">CRSV is selected by default. Add the other layers to see how much of the corpus rests on them.</p>
       </section>
       <section>
-        <h2>Force of the verb</h2>
+        <h2>Emphasis of resolution</h2>
         <div class="chips" id="forceChips"></div>
         <p class="hint">Derived from the paragraph's opening verb, not assigned by hand.</p>
       </section>
@@ -848,7 +848,26 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
     "Thematic WPS/CRSV": "--c-thematic", "Mission Mandate": "--c-mission",
     "Country-Specific": "--c-country", "Sanctions": "--c-sanctions"
   };
-  function catColor(c) { return "var(" + (CATCOL[c] || "--ink-3") + ")"; }
+  /* Display grouping agreed with T. Chikuhwa, 8 Oct 2026: four instrument types.
+     Country-specific resolutions share one colour with mission mandates. */
+  var INSTR = [
+    { k: "thematic", label: "Thematic CRSV / WPS", v: "--c-thematic" },
+    { k: "sanctions", label: "Sanctions", v: "--c-sanctions" },
+    { k: "mandate", label: "Country mandates (peace operations, SPMs)", v: "--c-mission" },
+    { k: "other", label: "Other thematic (CAAC, PoC, CT) \u2014 not yet added to the corpus", v: "--c-country" }
+  ];
+  var INSTR_BY = {}; INSTR.forEach(function (i) { INSTR_BY[i.k] = i; });
+  function instrOf(c) {
+    if (c === "Thematic WPS/CRSV") return "thematic";
+    if (c === "Sanctions") return "sanctions";
+    if (c === "Mission Mandate" || c === "Country-Specific") return "mandate";
+    return "other";
+  }
+  function catColor(c) { return "var(" + INSTR_BY[instrOf(c)].v + ")"; }
+  function emphasisStroke(f) {
+    var r = FORCE_BY[f] ? FORCE_BY[f].rank : -1;
+    return r < 0 ? 0 : [0, 0.6, 1.1, 1.7, 2.4, 3.2][r];
+  }
   function forceColor(f) {
     return { decision: "var(--f5)", demand: "var(--f4)", condemnation: "var(--f3)",
       call: "var(--f2)", encouragement: "var(--f1)", statement: "var(--f0)" }[f] || "var(--rule)";
@@ -864,9 +883,20 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
   function colourLegend() {
     var lg = el("div", { class: "legend" });
     if (S.colour === "instrument") {
-      CATS.forEach(function (c) {
-        lg.appendChild(el("span", {}, el("i", { style: { background: catColor(c) } }),
-          c.replace(" WPS/CRSV", "").replace("-Specific", "")));
+      INSTR.forEach(function (c) {
+        lg.appendChild(el("span", {}, el("i", { style: { background: "var(" + c.v + ")" } }), c.label));
+      });
+      lg.appendChild(el("div", { style: { flexBasis: "100%", height: "0" } }));
+      lg.appendChild(el("span", { class: "legend-size", text: "Halo \u2014 emphasis of resolution:" }));
+      FORCE.forEach(function (f) {
+        var k = f.rank, rr = 5;
+        var mini = sv("svg", { width: 34, height: 34, viewBox: "0 0 34 34", "aria-hidden": "true" });
+        if (k > 0) {
+          mini.appendChild(sv("circle", { cx: 17, cy: 17, r: rr + k * 2.4, fill: "var(--c-mission)", "fill-opacity": 0.07 + k * 0.025 }));
+          mini.appendChild(sv("circle", { cx: 17, cy: 17, r: rr + k * 1.2, fill: "var(--c-mission)", "fill-opacity": 0.12 + k * 0.035 }));
+        }
+        mini.appendChild(sv("circle", { cx: 17, cy: 17, r: rr, fill: "var(--c-mission)" }));
+        lg.appendChild(el("span", { style: { gap: "2px" } }, mini, f.label.split(" /")[0]));
       });
     } else if (S.colour === "tier") {
       TIERS.forEach(function (t) {
@@ -901,7 +931,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
   })();
 
   var S = { q: "", tiers: ["A"], cats: [], track: "", force: [], status: "",
-    y0: YMIN, y1: YMAX, view: "orbit", colour: "force", basket: [], sel: null, sortKey: "year", sortDir: 1, carriedOnly: false };
+    y0: YMIN, y1: YMAX, view: "orbit", colour: "instrument", basket: [], sel: null, sortKey: "year", sortDir: 1, carriedOnly: false };
 
   /* ---------- helpers ---------- */
   function el(t, a) {
@@ -1069,7 +1099,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
     if (S.y0 !== YMIN) p.set("from", S.y0);
     if (S.y1 !== YMAX) p.set("to", S.y1);
     if (S.view !== "orbit") p.set("view", S.view);
-    if (S.colour !== "force") p.set("colour", S.colour);
+    if (S.colour !== "instrument") p.set("colour", S.colour);
     if (S.sel !== null) p.set("row", S.sel);
     try { history.replaceState(null, "", p.toString() ? location.pathname + "?" + p : location.pathname); } catch (e) {}
   }
@@ -1105,7 +1135,8 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
     stage.appendChild(head("The corpus in orbit",
       "One node per resolution. The angle is its situation, the distance from the centre is the year " +
       "it was adopted, the size is how many paragraphs it contributes to the current selection, and the " +
-      "colour is the strongest verb it uses on those paragraphs. The thematic resolutions sit in the core, " +
+      "colour is its instrument type, and the halo is the strongest emphasis it uses on those paragraphs. " +
+      "The thematic CRSV and WPS resolutions sit in the red core, " +
       "since they belong to no single situation."));
     var ctl = el("div", { class: "split-ctl" }, el("label", { for: "colourMode", text: "Colour the nodes by" }));
     var csel = el("select", { id: "colourMode", onchange: function () {
@@ -1115,7 +1146,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
       }
       render();
     } });
-    [["force", "force of the verb"], ["instrument", "instrument type"], ["tier", "what the paragraph carries"]]
+    [["instrument", "instrument type"], ["force", "emphasis of resolution"], ["tier", "what the paragraph carries"]]
       .forEach(function (o) {
         csel.appendChild(el("option", { value: o[0], selected: S.colour === o[0] ? true : null, text: o[1] }));
       });
@@ -1258,12 +1289,20 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
 
     stage.appendChild(el("div", { class: "chart-shell orbit" }, svg));
     stage.appendChild(colourLegend());
+    if (S.colour === "instrument") {
+      stage.appendChild(el("p", { class: "footnote", text:
+        "Why a halo: colour is reserved for the type of instrument, so the Council\u2019s emphasis is carried by a " +
+        "second channel that does not compete with it. The halo shows the strongest verb the resolution uses on " +
+        "the paragraphs in view \u2014 the wider and brighter the glow, the stronger the language, from Decides / " +
+        "Authorizes (widest) through Demands, Condemns, Requests and Encourages, down to Notes / Welcomes (no halo). " +
+        "Reading both together shows where the Council pairs a given instrument with its firmest wording." }));
+    }
     var seen = {};
     nodes.forEach(function (o) {
-      seen[S.colour === "instrument" ? o.category : S.colour === "tier" ? o.tier : o.force] = 1;
+      seen[S.colour === "instrument" ? instrOf(o.category) : S.colour === "tier" ? o.tier : o.force] = 1;
     });
     if (Object.keys(seen).length < 2) {
-      var what = S.colour === "tier" ? "one layer" : S.colour === "instrument" ? "one instrument type" : "one force class";
+      var what = S.colour === "tier" ? "one layer" : S.colour === "instrument" ? "one instrument type" : "one emphasis class";
       stage.appendChild(el("p", { class: "footnote warnline", text:
         "Everything in view falls into " + what + ", so every node takes the same colour. Widen the " +
         "filters on the left — or switch the colouring — to see the distinction this palette encodes." }));
@@ -1277,20 +1316,28 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
       onkeydown: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); S.q = o.symbol; S.view = "table"; render(); } } });
     g.appendChild(sv("circle", { class: "halo", cx: x, cy: y, r: r + 5 }));
     var col = nodeColour(o);
+    var byInstr = S.colour === "instrument";
+    var rank = byInstr && FORCE_BY[o.force] ? FORCE_BY[o.force].rank : 0;
+    if (rank > 0) {
+      g.appendChild(sv("circle", { class: "emph", cx: x, cy: y, r: r + rank * 2.4, fill: col,
+        "fill-opacity": 0.07 + rank * 0.025, "pointer-events": "none" }));
+      g.appendChild(sv("circle", { class: "emph", cx: x, cy: y, r: r + rank * 1.2, fill: col,
+        "fill-opacity": 0.12 + rank * 0.035, "pointer-events": "none" }));
+    }
     g.appendChild(sv("circle", { cx: x, cy: y, r: r, fill: col,
-      "fill-opacity": 0.9, stroke: col, "stroke-width": 1 }));
+      "fill-opacity": 0.95, stroke: col, "stroke-width": 1 }));
     if (isCore || o.count >= 8) {
       g.appendChild(sv("text", { class: "onode-label", x: x, y: y - r - 5, "text-anchor": "middle", text: o.n }));
     }
     g.appendChild(sv("title", { text: o.symbol + " (" + o.year + ") — " + o.track + "\n" +
-      o.count + " paragraphs in view · strongest verb: " + (FORCE_BY[o.force] ? FORCE_BY[o.force].label : "—") }));
+      o.count + " paragraphs in view · strongest emphasis: " + (FORCE_BY[o.force] ? FORCE_BY[o.force].label : "—") }));
     return g;
   }
 
   /* -- strength: year × force -- */
   function viewStrength(rs) {
     var stage = $("stage");
-    stage.appendChild(head("Volume and force, year by year",
+    stage.appendChild(head("Volume and emphasis, year by year",
       "Each block is one paragraph, stacked by year and ordered by the verb that carries it. " +
       "The scale runs from <b>Decides</b> and <b>Demands</b> at the base to " +
       "<b>Notes</b> and <b>Welcomes</b> at the top. Counting paragraphs alone hides this axis entirely."));
@@ -1300,7 +1347,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
     var maxN = Math.max.apply(null, Object.keys(byYear).map(function (y) { return byYear[y].length; }));
     var colW = 34, cell = 15, padL = 46, padB = 40, padT = 16;
     var W = padL + (YMAX - YMIN + 1) * colW + 16, H = padT + maxN * cell + padB;
-    var svg = sv("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Paragraphs per year by force of verb" });
+    var svg = sv("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "Paragraphs per year by emphasis of resolution" });
     var base = H - padB;
     svg.appendChild(sv("line", { class: "grid-line", x1: padL - 8, y1: base, x2: W - 8, y2: base }));
     for (var y = YMIN; y <= YMAX; y++) {
@@ -1330,7 +1377,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
     });
     stage.appendChild(lg);
     stage.appendChild(el("p", { class: "footnote", text:
-      "Force is derived from the paragraph's opening verb, not assigned by hand. Sub-paragraphs, " +
+      "Emphasis is derived from the paragraph's opening verb, not assigned by hand. Sub-paragraphs, " +
       "annex entries and preambular clauses have no verb of their own and are shown in the lightest tone." }));
   }
 
@@ -1338,7 +1385,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
   function viewTracks(rs) {
     var stage = $("stage");
     stage.appendChild(head("One row per situation",
-      "Every coded paragraph on its track, placed by year and coloured by force. " +
+      "Every coded paragraph on its track, placed by year and coloured by emphasis. " +
       "Read across for a mission's trajectory; read down for what the Council was doing in a given year."));
     if (!rs.length) { stage.appendChild(empty()); return; }
     var by = {};
@@ -1386,9 +1433,9 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
 
   function viewTrajectory(rs) {
     var stage = $("stage");
-    stage.appendChild(head("Volume against force, track by track",
+    stage.appendChild(head("Volume against emphasis, track by track",
       "For each situation: the pale bars are how many paragraphs it carried that year, the line is " +
-      "the average force of their verbs on the 0 to 5 scale. A line that falls while the bars grow " +
+      "the average emphasis of their verbs on the 0 to 5 scale. A line that falls while the bars grow " +
       "is a track saying more and obliging less. The figure at the right is the slope of that line " +
       "across the years in view."));
     if (!rs.length) { stage.appendChild(empty()); return; }
@@ -1436,7 +1483,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
       pts.forEach(function (p) {
         var g = sv("g", { class: "spark-dot", tabindex: "-1" });
         g.appendChild(sv("circle", { cx: x(p[0]), cy: yf(p[1]), r: 2.6, fill: "var(--f5)" }));
-        g.appendChild(sv("title", { text: p[0] + ": " + by[t][p[0]].length + " paragraphs, mean force " + p[1].toFixed(2) }));
+        g.appendChild(sv("title", { text: p[0] + ": " + by[t][p[0]].length + " paragraphs, mean emphasis " + p[1].toFixed(2) }));
         svg.appendChild(g);
       });
       svg.appendChild(sv("text", { class: "tick-text", x: padL - 8, y: yf(5) + 3, "text-anchor": "end", text: "5" }));
@@ -1454,7 +1501,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
     });
     stage.appendChild(grid);
     stage.appendChild(el("p", { class: "footnote", text:
-      "Force scale: 5 Decides or Authorizes, 4 Demands, 3 Condemns, 2 Requests or Calls upon or Urges, " +
+      "Emphasis scale: 5 Decides or Authorizes, 4 Demands, 3 Condemns, 2 Requests or Calls upon or Urges, " +
       "1 Encourages, 0 declaratory verbs. Paragraphs with no verb of their own — sub-paragraphs, annex " +
       "entries, preambular clauses — are left out of the average. A slope needs at least three years." }));
   }
@@ -1565,7 +1612,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
     var stage = $("stage");
     stage.appendChild(head("Who the Council is speaking to",
       "Every paragraph classified by its addressee \u2014 read off the object of the verb \u2014 against " +
-      "the force of that verb. The rows above the rule are bodies the Council directs or funds; those " +
+      "the emphasis of that verb. The rows above the rule are bodies the Council directs or funds; those " +
       "below are actors outside its chain of command."));
     if (!rs.length) { stage.appendChild(empty()); return; }
 
@@ -1584,7 +1631,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
     var hr = el("tr", {}, el("th", { text: "Addressee" }));
     FORCE.forEach(function (f) { hr.appendChild(el("th", { class: "num", text: f.label.split(" /")[0] })); });
     hr.appendChild(el("th", { class: "num", text: "n" }));
-    hr.appendChild(el("th", { text: "mean force" }));
+    hr.appendChild(el("th", { text: "mean emphasis" }));
     t.appendChild(el("thead", {}, hr));
     var tb = el("tbody", {});
     var lastSide = null;
@@ -1631,9 +1678,9 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
         el("h3", { text: "Inside and outside the chain of command" }),
         el("p", { class: "stat-note", text:
           ins + " paragraphs address a body the Council directs — its missions, the Secretariat, its own "
-          + "committees — at a mean force of " + (insF / ins).toFixed(2) + ". "
+          + "committees — at a mean emphasis of " + (insF / ins).toFixed(2) + ". "
           + out + " address actors outside it — parties to a conflict, Member States, regional "
-          + "organisations — at a mean force of " + (outF / out).toFixed(2) + "." })));
+          + "organisations — at a mean emphasis of " + (outF / out).toFixed(2) + "." })));
     }
     stage.appendChild(el("p", { class: "footnote", text:
       "The addressee is taken from the object of the paragraph's verb and checked by hand where the "
@@ -1647,7 +1694,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
   function viewShift(rs) {
     var stage = $("stage");
     stage.appendChild(head("What moved, and what only looks as if it moved",
-      "The average force of the Council&rsquo;s language barely changes across the period. That stability " +
+      "The average emphasis of the Council&rsquo;s language barely changes across the period. That stability " +
       "hides two movements running against each other: more of the language is now addressed to bodies " +
       "the Council commands, which pushes the average up, while the language addressed to any given " +
       "audience has weakened, which pushes it down. This view separates them."));
@@ -1704,7 +1751,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
       el("th", { text: "Addressee" }),
       el("th", { class: "num", text: "share " + S.y0 + "\u2013" + split }),
       el("th", { class: "num", text: "share " + (split + 1) + "\u2013" + S.y1 }),
-      el("th", { text: "mean force, earlier \u2192 later" }),
+      el("th", { text: "mean emphasis, earlier \u2192 later" }),
       el("th", { class: "num", text: "n" }))));
     var tb = el("tbody", {});
     names.forEach(function (k) {
@@ -1753,7 +1800,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
     });
     stage.appendChild(el("div", { class: "chart-shell" }, wf));
     stage.appendChild(el("p", { class: "footnote", text:
-      "Mean force ran at " + meanA.toFixed(2) + " in " + S.y0 + "\u2013" + split + " and " + meanB.toFixed(2) +
+      "Mean emphasis ran at " + meanA.toFixed(2) + " in " + S.y0 + "\u2013" + split + " and " + meanB.toFixed(2) +
       " in " + (split + 1) + "\u2013" + S.y1 + ", a net change of " + (total > 0 ? "+" : "") + total.toFixed(2) +
       ". Holding the audience fixed, the verbs used on each audience account for " + (frc > 0 ? "+" : "") +
       frc.toFixed(2) + "; the shift in who is addressed accounts for " + (mix > 0 ? "+" : "") + mix.toFixed(2) +
@@ -1924,7 +1971,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
       el("div", { class: "stat-note", style: { marginTop: "6px" },
         text: rs.filter(function (r) { return r.status === "added"; }).length + " were added by the 2026 verification" })));
     var f = {}; rs.forEach(function (r) { if (r.force) f[r.force] = (f[r.force] || 0) + 1; });
-    panels.appendChild(bar("Force of the verb",
+    panels.appendChild(bar("Emphasis of resolution",
       FORCE.map(function (x) { return [x.label, f[x.k] || 0]; }).filter(function (e) { return e[1]; }),
       function (name) { var k = FORCE.filter(function (x) { return x.label === name; })[0]; return forceColor(k ? k.k : ""); }));
     var pv = {}; rs.forEach(function (r) { if (r.provision_type) pv[r.provision_type] = (pv[r.provision_type] || 0) + 1; });
@@ -2142,7 +2189,7 @@ table.records tr[aria-current="true"] { background: var(--accent-soft); }
       el("div", { class: "credit-grid" },
         el("div", {}, el("h3", { text: "Project lead and conceptual framework" }),
           el("p", {}, el("strong", { text: "Tonderai Chikuhwa" }),
-            el("span", { text: "Chief of Staff and Senior Policy Adviser, UN Office of the Special Representative of the Secretary-General on Sexual Violence in Conflict" }),
+            el("span", { text: "Senior Policy Adviser, UN Office of the Special Representative of the Secretary-General on Sexual Violence in Conflict" }),
             el("span", { text: "Hubert H. Humphrey Visiting Professor of Political Science, Macalester College (2024)" }))),
         el("div", {}, el("h3", { text: "Lead developer" }),
           el("p", {}, el("strong", { text: "Zhijun He" }),
